@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Test flask prosjekt</title>
+	<link rel="stylesheet" href="{{ url_for('static', filename='leaflet.css') }}">
+	<script src="{{ url_for('static', filename='leaflet.js') }}"></script>
+	<style>
+		#mapid { height: 500px; }
+	</style>
+</head>
+<body>
+	<div id="mapid"></div>
+	<script>
+		var mymap = L.map('mapid').setView([51.505, -0.09], 13);
+		L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+			attribution: 'Map data © <a href="https://openstreetmap.org">OpenStreetMap</a> contributors',
+			maxZoom: 18,
+		}).addTo(mymap);
+
+		mymap.on('click', function(e) {
+			var popup = L.popup()
+				.setLatLng(e.latlng)
+				.setContent('<form onsubmit="addBuilding();return false;">' +
+				'<label>Name: <input type="text" name="name"></label><br>' +
+				'<label>Address: <input type="text" name="address"></label><br>' +
+				'<button type="submit">Save</button>' +
+				'</form>')
+				.openOn(mymap);
+
+			function addBuilding() {
+				var name = popup.getContent().querySelector('input[name="name"]').value;
+				var address = popup.getContent().querySelector('input[name="address"]').value;
+				fetch('/add_building', {
+					method: 'POST',
+					body: new URLSearchParams({
+						name: name,
+						address: address,
+						latitude: e.latlng.lat,
+						longitude: e.latlng.lng,
+					}),
+				}).then(function(response) {
+					return response.json();
+				}).then(function(data) {
+					if (data.result == 'success') {
+						popup.setContent('<b>Building added!</b>');
+						setTimeout(function() { mymap.closePopup(); }, 1000);
+					} else {
+						alert('Error: ' + data.error);
+					}
+				}).catch(function(error) {
+					alert('Error: ' + error);
+				});
+			}
+		});
+	</script>
+</body>
+</html>
