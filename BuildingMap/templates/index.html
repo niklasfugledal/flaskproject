@@ -4,6 +4,8 @@
 	<title>Test flask prosjekt</title>
 	<link rel="stylesheet" href="{{ url_for('static', filename='leaflet.css') }}">
 	<script src="{{ url_for('static', filename='leaflet.js') }}"></script>
+	<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
 	<style>
 		#mapid { height: 500px; }
 	</style>
@@ -17,41 +19,42 @@
 			maxZoom: 18,
 		}).addTo(mymap);
 
+		// Add marker on click and open form popup
 		mymap.on('click', function(e) {
+			var marker = L.marker(e.latlng).addTo(mymap);
 			var popup = L.popup()
 				.setLatLng(e.latlng)
-				.setContent('<form onsubmit="addBuilding();return false;">' +
-				'<label>Name: <input type="text" name="name"></label><br>' +
-				'<label>Address: <input type="text" name="address"></label><br>' +
+				.setContent('<form onsubmit="saveBuilding();return false;">' +
+				'<label>Name: <input type="text" id="name"></label><br>' +
+				'<label>Address: <input type="text" id="address"></label><br>' +
 				'<button type="submit">Save</button>' +
 				'</form>')
 				.openOn(mymap);
-
-			function addBuilding() {
-				var name = popup.getContent().querySelector('input[name="name"]').value;
-				var address = popup.getContent().querySelector('input[name="address"]').value;
-				fetch('/add_building', {
-					method: 'POST',
-					body: new URLSearchParams({
-						name: name,
-						address: address,
-						latitude: e.latlng.lat,
-						longitude: e.latlng.lng,
-					}),
-				}).then(function(response) {
-					return response.json();
-				}).then(function(data) {
-					if (data.result == 'success') {
-						popup.setContent('<b>Building added!</b>');
-						setTimeout(function() { mymap.closePopup(); }, 1000);
-					} else {
-						alert('Error: ' + data.error);
-					}
-				}).catch(function(error) {
-					alert('Error: ' + error);
-				});
-			}
 		});
+
+		function saveBuilding() {
+    var name = document.getElementById("name").value;
+    var address = document.getElementById("address").value;
+    var lat = marker.getLatLng().lat;
+    var lng = marker.getLatLng().lng;
+    var data = {name: name, address: address, latitude: lat, longitude: lng};
+    fetch('/save-building', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(data)
+    }).then(function(response) {
+        if (response.ok) {
+            alert("Building saved successfully");
+        } else {
+            alert("Failed to save building");
+        }
+    }).catch(function(error) {
+        alert("Failed to save building");
+    });
+}
+
 	</script>
 </body>
 </html>
